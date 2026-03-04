@@ -50,16 +50,133 @@
             font-weight: bold;
             margin: 0 2px;
         }
+
+        #battlepassPanel {
+            display: none;
+            position: fixed;
+            right: 20px;
+            top: 20px;
+            background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+            border: 3px solid #f39c12;
+            border-radius: 10px;
+            padding: 20px;
+            color: white;
+            font-family: Arial, sans-serif;
+            width: 250px;
+            box-shadow: 0 8px 30px rgba(0,0,0,0.5);
+            z-index: 1000;
+        }
+
+        #battlepassPanel h3 {
+            margin: 0 0 10px 0;
+            color: #f39c12;
+            text-align: center;
+            font-size: 18px;
+            text-transform: uppercase;
+        }
+
+        .bp-level-display {
+            text-align: center;
+            font-size: 24px;
+            font-weight: bold;
+            color: #f39c12;
+            margin: 10px 0;
+        }
+
+        .bp-xp-bar {
+            background: #34495e;
+            border: 2px solid #95a5a6;
+            border-radius: 5px;
+            height: 20px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+
+        .bp-xp-fill {
+            background: linear-gradient(90deg, #3498db 0%, #2ecc71 100%);
+            height: 100%;
+            transition: width 0.5s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            color: white;
+            font-weight: bold;
+        }
+
+        .bp-rewards-list {
+            margin-top: 15px;
+            max-height: 200px;
+            overflow-y: auto;
+            font-size: 12px;
+        }
+
+        .bp-reward-item {
+            background: rgba(52, 73, 94, 0.6);
+            border-left: 3px solid #2ecc71;
+            padding: 8px;
+            margin: 5px 0;
+            border-radius: 3px;
+        }
+
+        .bp-reward-item.claimed {
+            border-left-color: #f39c12;
+            opacity: 0.7;
+        }
+
+        .bp-reward-level {
+            font-weight: bold;
+            color: #f39c12;
+            font-size: 11px;
+        }
+
+        .bp-toggle-btn {
+            position: fixed;
+            right: 20px;
+            top: 20px;
+            background: #f39c12;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            font-size: 24px;
+            cursor: pointer;
+            z-index: 999;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+        }
+
+        .bp-toggle-btn:hover {
+            background: #e67e22;
+        }
     </style>
 </head>
 <body>
+    <button class="bp-toggle-btn" id="bpToggleBtn" title="Press to toggle battlepass">🎖️</button>
+    
+    <div id="battlepassPanel">
+        <h3>⚔️ Battlepass</h3>
+        <div class="bp-level-display" id="bpLevel">Level 1</div>
+        <div class="bp-xp-bar">
+            <div class="bp-xp-fill" id="bpXpBar" style="width: 0%">
+                <span id="bpXpText">0/100</span>
+            </div>
+        </div>
+        <div class="bp-rewards-list" id="bpRewardsList">
+            <div class="bp-reward-item">
+                <div class="bp-reward-level">Level 1</div>
+                <div>🎨 Epic Color: Blue</div>
+            </div>
+        </div>
+    </div>
+    
     <div class="game-container">
         <canvas id="gameCanvas" width="800" height="600"></canvas>
         <div class="controls">
             <h3>Controls</h3>
-            <p>Use <span class="key">W</span><span class="key">A</span><span class="key">S</span><span class="key">D</span> to move. Press <span class="key">L</span> to open a lootbox.</p>
+            <p>Use <span class="key">W</span><span class="key">A</span><span class="key">S</span><span class="key">D</span> to move. Press <span class="key">L</span> to open a lootbox. Press <span class="key">B</span> for battlepass.</p>
             <p>Watch the yellow circle for upcoming ring spawns.</p>
-            <p><button id="paypalButton">Buy a skin / Donate</button></p>
+            <p><button id="paypalButton">Buy a skin / Donate</button> <span id="clearDataBtn" style="cursor: pointer; color: #ecf0f1; margin-left: 20px;">🗑️ Clear Battlepass Data</span></p>
         </div>
     </div>
 
@@ -120,6 +237,26 @@
                 this.lastXPUpdate = 0;
                 this.lootboxes = 0;
 
+                // Battlepass Rewards
+                this.battlepassRewards = [
+                    { level: 1, name: '🎨 Epic Color: Blue', effect: 'playerColor', value: '#3498db', claimed: true },
+                    { level: 2, name: '⚡ Speed Boost +2', effect: 'speedBoost', value: 2, claimed: false },
+                    { level: 3, name: '🎨 Epic Color: Crimson', effect: 'playerColor', value: '#e74c3c', claimed: false },
+                    { level: 4, name: '🛡️ Shield Ability', effect: 'shield', value: 3000, claimed: false },
+                    { level: 5, name: '✨ Glow Effect', effect: 'glow', value: true, claimed: false },
+                    { level: 6, name: '⚡ Speed Boost +3', effect: 'speedBoost', value: 3, claimed: false },
+                    { level: 7, name: '🎨 Epic Color: Gold', effect: 'playerColor', value: '#f39c12', claimed: false },
+                    { level: 8, name: '🔥 Fire Trail', effect: 'trail', value: 'fire', claimed: false },
+                    { level: 9, name: '💎 Diamond Skin', effect: 'skin', value: 'diamond', claimed: false },
+                    { level: 10, name: '👑 LEGENDARY WEASEL 👑', effect: 'legendary', value: true, claimed: false }
+                ];
+                this.playerColor = '#8B4513';
+                this.hasGlow = false;
+                this.trail = null;
+                this.skin = null;
+                this.shield = null;
+                this.battlepassOpen = false;
+
                 // Minimap settings
                 this.minimapWidth = 200;
                 this.minimapHeight = 150;
@@ -127,6 +264,9 @@
                 // player shape timer
                 this.lastShapeChange = 0;
                 this.shapeChangeInterval = 5000; // every 5 seconds
+                
+                // Load saved battlepass data
+                this.loadBattlepass();
                 
                 this.init();
             }
@@ -152,6 +292,9 @@
                 // Set up event listeners
                 this.setupInputHandlers();
                 
+                // Initialize Battlepass UI
+                this.updateBattlepassUI();
+                
                 // Start game loop
                 this.gameLoop();
             }
@@ -160,24 +303,35 @@
                 document.addEventListener('keydown', (e) => {
                     switch(e.key.toLowerCase()) {
                         case 'w':
-                            this.keys.w = true;
+                            if (this.gameState === 'playing') this.keys.w = true;
                             break;
                         case 'a':
-                            this.keys.a = true;
+                            if (this.gameState === 'playing') this.keys.a = true;
                             break;
                         case 's':
-                            this.keys.s = true;
+                            if (this.gameState === 'playing') this.keys.s = true;
                             break;
                         case 'd':
-                            this.keys.d = true;
+                            if (this.gameState === 'playing') this.keys.d = true;
                             break;
                         case 'l':
-                            if (this.lootboxes > 0) {
+                            if (this.gameState === 'playing' && this.lootboxes > 0) {
                                 this.openLootbox();
                             }
                             break;
+                        case 'b':
+                            this.toggleBattlepass();
+                            break;
+                        case ' ':
+                            e.preventDefault();
+                            if (this.gameState === 'gameOver') {
+                                this.resetGameState();
+                            }
+                            break;
                     }
-                    e.preventDefault();
+                    if (this.gameState === 'playing') {
+                        e.preventDefault();
+                    }
                 });
 
                 // paypal button handler
@@ -188,6 +342,32 @@
                         window.open('https://www.paypal.me/KalebDLC', '_blank');
                     });
                 }
+
+                // battlepass toggle button
+                const bpToggleBtn = document.getElementById('bpToggleBtn');
+                if (bpToggleBtn) {
+                    bpToggleBtn.addEventListener('click', () => {
+                        this.toggleBattlepass();
+                    });
+                }
+
+                // clear data button
+                const clearDataBtn = document.getElementById('clearDataBtn');
+                if (clearDataBtn) {
+                    clearDataBtn.addEventListener('click', () => {
+                        if (confirm('Are you sure you want to clear all battlepass data?')) {
+                            localStorage.removeItem('weaselBattlepass');
+                            location.reload();
+                        }
+                    });
+                }
+
+                // Canvas click to play again on game over
+                this.canvas.addEventListener('click', () => {
+                    if (this.gameState === 'gameOver') {
+                        this.resetGameState();
+                    }
+                });
                 
                 document.addEventListener('keyup', (e) => {
                     switch(e.key.toLowerCase()) {
@@ -204,7 +384,6 @@
                             this.keys.d = false;
                             break;
                     }
-                    e.preventDefault();
                 });
             }
             
@@ -241,7 +420,10 @@
                     if (this.battlepassXP >= 100) {
                         this.battlepassXP -= 100;
                         this.battlepassLevel++;
+                        this.claimBattlepassReward();
                     }
+                    this.updateBattlepassUI();
+                    this.saveBattlepass();
                 }
 
                 // randomize player shape periodically
@@ -411,6 +593,13 @@
                     );
                     
                     if (distance < playerRadius + ring.radius) {
+                        // Check if shield is active
+                        if (this.shield && Date.now() - this.shield.startTime < this.shield.duration) {
+                            // Shield blocks the collision
+                            alert('🛡️ Your shield protected you!');
+                            this.shield = null;
+                            return;
+                        }
                         this.gameState = 'gameOver';
                         this.gameEndTime = Date.now();
                         return;
@@ -429,8 +618,156 @@
                     if (this.battlepassXP >= 100) {
                         this.battlepassXP -= 100;
                         this.battlepassLevel++;
+                        this.claimBattlepassReward();
                     }
+                    this.updateBattlepassUI();
                     alert('You opened a lootbox and got 50 XP!');
+                }
+                this.lootboxes--;
+                this.saveBattlepass();
+            }
+
+            toggleBattlepass() {
+                this.battlepassOpen = !this.battlepassOpen;
+                const panel = document.getElementById('battlepassPanel');
+                if (panel) {
+                    panel.style.display = this.battlepassOpen ? 'block' : 'none';
+                }
+            }
+
+            updateBattlepassUI() {
+                const levelDisplay = document.getElementById('bpLevel');
+                const xpBar = document.getElementById('bpXpBar');
+                const xpText = document.getElementById('bpXpText');
+
+                if (levelDisplay) {
+                    levelDisplay.textContent = `Level ${this.battlepassLevel}`;
+                }
+                if (xpBar) {
+                    xpBar.style.width = `${this.battlepassXP}%`;
+                    if (xpText) {
+                        xpText.textContent = `${this.battlepassXP}/100`;
+                    }
+                }
+
+                this.updateRewardsList();
+            }
+
+            updateRewardsList() {
+                const rewardsList = document.getElementById('bpRewardsList');
+                if (!rewardsList) return;
+
+                rewardsList.innerHTML = '';
+                for (let reward of this.battlepassRewards) {
+                    const item = document.createElement('div');
+                    item.className = 'bp-reward-item';
+                    if (reward.claimed) {
+                        item.classList.add('claimed');
+                    }
+                    item.innerHTML = `<div class="bp-reward-level">Level ${reward.level} ${reward.claimed ? '✓' : ''}</div><div>${reward.name}</div>`;
+                    rewardsList.appendChild(item);
+                }
+            }
+
+            claimBattlepassReward() {
+                const reward = this.battlepassRewards.find(r => r.level === this.battlepassLevel);
+                if (!reward) return;
+
+                reward.claimed = true;
+                
+                switch (reward.effect) {
+                    case 'playerColor':
+                        this.playerColor = reward.value;
+                        alert(`🎨 Tier ${reward.level}: You unlocked ${reward.name}!`);
+                        break;
+                    case 'speedBoost':
+                        this.player.speed += reward.value;
+                        alert(`⚡ Tier ${reward.level}: Your speed increased by ${reward.value}!`);
+                        break;
+                    case 'glow':
+                        this.hasGlow = reward.value;
+                        alert(`✨ Tier ${reward.level}: You now glow!`);
+                        break;
+                    case 'shield':
+                        this.shield = { duration: reward.value, startTime: Date.now() };
+                        alert(`🛡️ Tier ${reward.level}: Shield activated for 3 seconds!`);
+                        break;
+                    case 'trail':
+                        this.trail = reward.value;
+                        alert(`🔥 Tier ${reward.level}: You have a ${reward.value} trail!`);
+                        break;
+                    case 'skin':
+                        this.skin = reward.value;
+                        alert(`💎 Tier ${reward.level}: You unlocked the ${reward.value} skin!`);
+                        break;
+                    case 'legendary':
+                        this.skin = 'legendary';
+                        this.playerColor = '#ffd700';
+                        this.hasGlow = true;
+                        alert(`👑 Tier ${reward.level}: YOU ARE NOW LEGENDARY! 👑`);
+                        break;
+                }
+
+                this.updateBattlepassUI();
+                this.saveBattlepass();
+            }
+
+            saveBattlepass() {
+                const data = {
+                    level: this.battlepassLevel,
+                    xp: this.battlepassXP,
+                    rewards: this.battlepassRewards,
+                    playerColor: this.playerColor,
+                    hasGlow: this.hasGlow,
+                    skin: this.skin,
+                    baseSpeed: this.player.speed - 5 // Save extra speed gained from rewards
+                };
+                localStorage.setItem('weaselBattlepass', JSON.stringify(data));
+            }
+
+            loadBattlepass() {
+                const saved = localStorage.getItem('weaselBattlepass');
+                if (saved) {
+                    try {
+                        const data = JSON.parse(saved);
+                        this.battlepassLevel = data.level || 1;
+                        this.battlepassXP = data.xp || 0;
+                        this.battlepassRewards = data.rewards || this.battlepassRewards;
+                        this.playerColor = data.playerColor || '#8B4513';
+                        this.hasGlow = data.hasGlow || false;
+                        this.skin = data.skin || null;
+                        // Apply extra speed from rewards
+                        if (data.baseSpeed) {
+                            this.player.speed = 5 + data.baseSpeed;
+                        }
+                    } catch (e) {
+                        console.error('Failed to load battlepass data:', e);
+                    }
+                }
+            }
+
+            resetGameState() {
+                // Reset only game-specific state, keeping battlepass data
+                this.gameState = 'playing';
+                this.gameStartTime = Date.now();
+                this.gameEndTime = null;
+                this.rings = [];
+                this.lastRingSpawn = 0;
+                this.ringsSpawned = 0;
+                this.nextRingPosition = null;
+                this.previewShown = false;
+                this.lastXPUpdate = 0;
+                this.lootboxes = 0;
+                this.battlepassXP = 0;
+                this.shield = null;
+                this.lastShapeChange = 0;
+                this.player.x = this.gameWidth / 2;
+                this.player.y = this.gameHeight / 2;
+                this.player.shapeIndex = 0;
+                this.battlepassOpen = false;
+                const panel = document.getElementById('battlepassPanel');
+                if (panel) {
+                    panel.style.display = 'none';
                 }
             }
             
@@ -468,6 +805,15 @@
             
             drawPlayer() {
                 const shape = this.player.shapes[this.player.shapeIndex];
+
+                // Draw glow effect
+                if (this.hasGlow) {
+                    this.ctx.fillStyle = 'rgba(255, 215, 0, 0.3)';
+                    this.ctx.beginPath();
+                    this.ctx.arc(this.player.x + this.player.width/2, this.player.y + this.player.height/2, this.player.width/2 + 15, 0, Math.PI * 2);
+                    this.ctx.fill();
+                }
+
                 if (this.player.imageLoaded && this.player.image.complete) {
                     // draw image normally
                     this.ctx.drawImage(
@@ -481,17 +827,17 @@
                     // draw placeholder shape based on current shape
                     switch(shape) {
                         case 'square':
-                            this.ctx.fillStyle = '#8B4513';
+                            this.ctx.fillStyle = this.playerColor;
                             this.ctx.fillRect(this.player.x, this.player.y, this.player.width, this.player.height);
                             break;
                         case 'circle':
-                            this.ctx.fillStyle = '#8B4513';
+                            this.ctx.fillStyle = this.playerColor;
                             this.ctx.beginPath();
                             this.ctx.arc(this.player.x + this.player.width/2, this.player.y + this.player.height/2, this.player.width/2, 0, Math.PI*2);
                             this.ctx.fill();
                             break;
                         case 'triangle':
-                            this.ctx.fillStyle = '#8B4513';
+                            this.ctx.fillStyle = this.playerColor;
                             this.ctx.beginPath();
                             this.ctx.moveTo(this.player.x + this.player.width/2, this.player.y);
                             this.ctx.lineTo(this.player.x, this.player.y + this.player.height);
@@ -506,6 +852,17 @@
                     this.ctx.fillRect(this.player.x + 35, this.player.y + 15, 8, 8);
                     this.ctx.fillStyle = '#FF69B4';
                     this.ctx.fillRect(this.player.x + 28, this.player.y + 30, 6, 4);
+                }
+
+                // Draw shield if active
+                if (this.shield && Date.now() - this.shield.startTime < this.shield.duration) {
+                    this.ctx.strokeStyle = 'rgba(0, 150, 255, 0.7)';
+                    this.ctx.lineWidth = 3;
+                    this.ctx.beginPath();
+                    this.ctx.arc(this.player.x + this.player.width/2, this.player.y + this.player.height/2, this.player.width/2 + 10, 0, Math.PI * 2);
+                    this.ctx.stroke();
+                } else if (this.shield) {
+                    this.shield = null;
                 }
             }
             
@@ -523,6 +880,23 @@
                 this.ctx.fillText(`BP Lv: ${this.battlepassLevel}`, 20, 90);
                 this.ctx.fillText(`XP: ${this.battlepassXP}/100`, 20, 110);
                 this.ctx.fillText(`Lootboxes: ${this.lootboxes}`, 20, 130);
+
+                // Draw Battlepass XP bar on canvas
+                this.ctx.fillStyle = 'rgba(255, 255, 255, 0.2)';
+                this.ctx.fillRect(10, 160, 200, 20);
+                this.ctx.fillStyle = '#2ecc71';
+                this.ctx.fillRect(10, 160, (200 * this.battlepassXP) / 100, 20);
+                this.ctx.strokeStyle = '#fff';
+                this.ctx.lineWidth = 1;
+                this.ctx.strokeRect(10, 160, 200, 20);
+
+                // Draw legend if legendary
+                if (this.skin === 'legendary') {
+                    this.ctx.fillStyle = '#ffd700';
+                    this.ctx.font = 'bold 16px Arial';
+                    this.ctx.textAlign = 'center';
+                    this.ctx.fillText('👑 LEGENDARY WEASEL 👑', this.gameWidth / 2, 25);
+                }
                 
                 // Draw survival time
                 const currentTime = this.gameState === 'gameOver' ? this.gameEndTime : Date.now();
@@ -531,6 +905,7 @@
                 this.ctx.fillRect(this.gameWidth - 120, 10, 110, 30);
                 this.ctx.fillStyle = '#fff';
                 this.ctx.textAlign = 'right';
+                this.ctx.font = '14px Arial';
                 this.ctx.fillText(`Time: ${survivalTime}s`, this.gameWidth - 20, 30);
             }
             
@@ -589,8 +964,15 @@
                 this.ctx.font = '24px Arial';
                 this.ctx.fillText(`You survived ${survivalTime} seconds!`, this.gameWidth / 2, this.gameHeight / 2 + 20);
                 
+                // Show battlepass level gained
                 this.ctx.font = '18px Arial';
-                this.ctx.fillText('Refresh to play again', this.gameWidth / 2, this.gameHeight / 2 + 60);
+                this.ctx.fillStyle = '#f39c12';
+                this.ctx.fillText(`Battlepass Level: ${this.battlepassLevel}`, this.gameWidth / 2, this.gameHeight / 2 + 50);
+
+                // Draw Play Again instruction
+                this.ctx.font = '16px Arial';
+                this.ctx.fillStyle = '#2ecc71';
+                this.ctx.fillText('Press SPACE or click the canvas to play again', this.gameWidth / 2, this.gameHeight / 2 + 80);
             }
             
             gameLoop() {
